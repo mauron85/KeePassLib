@@ -22,8 +22,14 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 using System.Drawing;
+#endif
+
+#if KeePassUWP
+using Windows.UI;
+using Windows.UI.Xaml.Controls;
+using System.Threading.Tasks;
 #endif
 
 using KeePassLib.Collections;
@@ -37,6 +43,7 @@ using KeePassLib.Resources;
 using KeePassLib.Security;
 using KeePassLib.Serialization;
 using KeePassLib.Utility;
+
 
 namespace KeePassLib
 {
@@ -74,9 +81,13 @@ namespace KeePassLib
 		private string m_strDefaultUserName = string.Empty;
 		private DateTime m_dtDefaultUserChanged = PwDefs.DtDefaultNow;
 		private uint m_uMntncHistoryDays = 365;
-		private Color m_clr = Color.Empty;
+#if KeePassUWP
+        private Color m_clr = Colors.Transparent;
+#else
+        private Color m_clr = Color.Empty;
+#endif
 
-		private DateTime m_dtKeyLastChanged = PwDefs.DtDefaultNow;
+        private DateTime m_dtKeyLastChanged = PwDefs.DtDefaultNow;
 		private long m_lKeyChangeRecDays = -1;
 		private long m_lKeyChangeForceDays = -1;
 		private bool m_bKeyChangeForceOnce = false;
@@ -552,9 +563,13 @@ namespace KeePassLib
 			m_strDefaultUserName = string.Empty;
 			m_dtDefaultUserChanged = dtNow;
 			m_uMntncHistoryDays = 365;
-			m_clr = Color.Empty;
+#if KeePassUWP
+            m_clr = Colors.Transparent;
+#else
+            m_clr = Color.Empty;
+#endif
 
-			m_dtKeyLastChanged = dtNow;
+            m_dtKeyLastChanged = dtNow;
 			m_lKeyChangeRecDays = -1;
 			m_lKeyChangeForceDays = -1;
 			m_bKeyChangeForceOnce = false;
@@ -658,12 +673,25 @@ namespace KeePassLib
 			}
 		}
 
-		/// <summary>
-		/// Save the currently opened database. The file is written to the location
-		/// it has been opened from.
-		/// </summary>
-		/// <param name="slLogger">Logger that recieves status information.</param>
-		public void Save(IStatusLogger slLogger)
+#if KeePassUWP
+        public async Task OpenAsync(IOConnectionInfo ioSource, CompositeKey pwKey,
+            IStatusLogger slLogger)
+        {
+            await Task.Run(() =>
+            {
+                //TODO rewrite as async
+                //http://www.ben-morris.com/why-you-shouldnt-create-asynchronous-wrappers-with-task-run/
+                Open(ioSource, pwKey, slLogger);
+            });
+        }
+#endif
+
+        /// <summary>
+        /// Save the currently opened database. The file is written to the location
+        /// it has been opened from.
+        /// </summary>
+        /// <param name="slLogger">Logger that recieves status information.</param>
+        public void Save(IStatusLogger slLogger)
 		{
 			Debug.Assert(!HasDuplicateUuids());
 
@@ -1632,7 +1660,7 @@ namespace KeePassLib
 			return -1;
 		}
 
-#if KeePassUAP
+#if KeePassUAP || KeePassUWP
 		public Image GetCustomIcon(PwUuid pwIconId)
 		{
 			int nIndex = GetCustomIconIndex(pwIconId);

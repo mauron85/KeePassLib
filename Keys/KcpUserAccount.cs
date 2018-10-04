@@ -26,6 +26,10 @@ using System.Security;
 using System.Security.Cryptography;
 #endif
 
+#if KeePassUWP
+using KeePassLib.Cryptography.Compat;
+#endif
+
 using KeePassLib.Cryptography;
 using KeePassLib.Resources;
 using KeePassLib.Security;
@@ -85,14 +89,16 @@ namespace KeePassLib.Keys
 
 		private static string GetUserKeyFilePath(bool bCreate)
 		{
-#if KeePassUAP
-			string strUserDir = EnvironmentExt.AppDataRoamingFolderPath;
+#if KeePassUWP
+            string strUserDir = Windows.Storage.ApplicationData.Current.LocalFolder.Path;
+#elif KeePassUAP
+            string strUserDir = EnvironmentExt.AppDataRoamingFolderPath;
 #else
 			string strUserDir = Environment.GetFolderPath(
 				Environment.SpecialFolder.ApplicationData);
 #endif
 
-			strUserDir = UrlUtil.EnsureTerminatingSeparator(strUserDir, false);
+            strUserDir = UrlUtil.EnsureTerminatingSeparator(strUserDir, false);
 			strUserDir += PwDefs.ShortProductName;
 
 			if(bCreate && !Directory.Exists(strUserDir))

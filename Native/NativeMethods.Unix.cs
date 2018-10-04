@@ -24,7 +24,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 using System.Windows.Forms;
 #endif
 
@@ -32,7 +32,7 @@ namespace KeePassLib.Native
 {
 	internal static partial class NativeMethods
 	{
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !KeePassUWP)
 		[StructLayout(LayoutKind.Sequential)]
 		private struct XClassHint
 		{
@@ -112,10 +112,10 @@ namespace KeePassLib.Native
 		}
 #endif
 
-		// =============================================================
-		// LibGCrypt 1.8.1
+        // =============================================================
+        // LibGCrypt 1.8.1
 
-		private const string LibGCrypt = "libgcrypt.so.20";
+        private const string LibGCrypt = "libgcrypt.so.20";
 
 		internal const int GCRY_CIPHER_AES256 = 9;
 		internal const int GCRY_CIPHER_MODE_ECB = 1;

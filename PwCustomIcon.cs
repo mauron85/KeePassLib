@@ -21,8 +21,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 using System.Drawing;
+#endif
+
+#if KeePassUWP
+using Windows.UI.Xaml.Controls;
 #endif
 
 using KeePassLib.Utility;
@@ -57,10 +61,10 @@ namespace KeePassLib
 		[Obsolete("Use GetImage instead.")]
 		public Image Image
 		{
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !KeePassUWP)
 			get { return GetImage(16, 16); } // Backward compatibility
 #else
-			get { return GetImage(); } // Backward compatibility
+            get { return GetImage(); } // Backward compatibility
 #endif
 		}
 
@@ -87,7 +91,12 @@ namespace KeePassLib
 					m_imgOrg;
 		}
 
-		private static long GetID(int w, int h)
+        private static long GetID(double w, double h)
+        {
+            return (((long)w << 32) ^ (long)h);
+        }
+
+        private static long GetID(int w, int h)
 		{
 			return (((long)w << 32) ^ (long)h);
 		}
@@ -100,7 +109,7 @@ namespace KeePassLib
 			return m_imgOrg;
 		}
 
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !KeePassUWP)
 		/// <summary>
 		/// Get the icon as an <c>Image</c> (with the specified size).
 		/// </summary>
@@ -122,5 +131,5 @@ namespace KeePassLib
 			return img;
 		}
 #endif
-	}
+    }
 }

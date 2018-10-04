@@ -24,7 +24,7 @@ using System.IO;
 using System.Text;
 using System.Xml;
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 using System.Drawing;
 #endif
 
@@ -748,16 +748,28 @@ namespace KeePassLib.Serialization
 			}
 
 			m_bReadNextNode = false; // ReadElementString skips end tag
-			return xr.ReadElementString();
-		}
+#if KeePassUWP
+            return xr.ReadElementContentAsString();
+#else
+            return xr.ReadElementString();
+#endif
+        }
 
 		private string ReadStringRaw(XmlReader xr)
 		{
 			m_bReadNextNode = false; // ReadElementString skips end tag
-			return xr.ReadElementString();
-		}
+#if KeePassUWP
+            if (xr.IsStartElement())
+            {
+                return xr.ReadElementContentAsString();
+            }
+            return null;
+#else
+            return xr.ReadElementString();
+#endif
+        }
 
-		private byte[] ReadBase64(XmlReader xr, bool bRaw)
+        private byte[] ReadBase64(XmlReader xr, bool bRaw)
 		{
 			// if(bRaw) return ReadBase64RawInChunks(xr);
 

@@ -23,7 +23,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 
-#if !KeePassUAP
+#if !KeePassUAP || KeePassUWP
 using System.Security.Cryptography;
 #endif
 
@@ -31,7 +31,7 @@ using KeePassLib.Utility;
 
 namespace KeePassLib.Cryptography
 {
-	public sealed class HashingStreamEx : Stream
+	public class HashingStreamEx : Stream
 	{
 		private readonly Stream m_sBaseStream;
 		private readonly bool m_bWriting;
@@ -89,15 +89,17 @@ namespace KeePassLib.Cryptography
 #endif
 			if(m_hash == null) { Debug.Assert(false); return; }
 
-			// Validate hash algorithm
-			if(!m_hash.CanReuseTransform || !m_hash.CanTransformMultipleBlocks)
+#if !KeePassUWP
+            // Validate hash algorithm
+            if (!m_hash.CanReuseTransform || !m_hash.CanTransformMultipleBlocks)
 			{
 				Debug.Assert(false);
 				m_hash = null;
 			}
-		}
+#endif
+        }
 
-		protected override void Dispose(bool disposing)
+        protected override void Dispose(bool disposing)
 		{
 			if(disposing)
 			{
@@ -114,10 +116,15 @@ namespace KeePassLib.Cryptography
 					m_hash = null;
 				}
 
-				m_sBaseStream.Close();
-			}
+#if KeePassUWP
+                m_sBaseStream.Dispose();
+#else
+                m_sBaseStream.Close();
+#endif
 
-			base.Dispose(disposing);
+            }
+
+            base.Dispose(disposing);
 		}
 
 		public override void Flush()

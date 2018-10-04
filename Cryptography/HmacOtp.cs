@@ -22,7 +22,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
-#if !KeePassUAP
+#if !KeePassUAP || KeePassUWP
 using System.Security.Cryptography;
 #endif
 

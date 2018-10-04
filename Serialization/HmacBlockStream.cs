@@ -23,8 +23,15 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 
-#if !KeePassUAP
+#if !KeePassUAP || !KeePassUWP
 using System.Security.Cryptography;
+#endif
+
+#if KeePassUWP
+using KeePassLib.Cryptography.Hash.Compat;
+using HMACSHA256 = KeePassLib.Cryptography.Hash.Compat.HMACSHA256;
+#else
+using HMACSHA256 = System.Security.Cryptography.HMACSHA256;
 #endif
 
 using KeePassLib.Resources;
@@ -115,8 +122,13 @@ namespace KeePassLib.Serialization
 					Flush();
 				}
 
-				m_sBase.Close();
-				m_sBase = null;
+#if KeePassUWP
+                m_sBase.Dispose();
+#else
+                m_sBase.Close();
+#endif
+
+                m_sBase = null;
 			}
 
 			base.Dispose(disposing);

@@ -26,6 +26,10 @@ using System.Text;
 using System.Security.Cryptography;
 #endif
 
+#if KeePassUWP
+using KeePassLib.Cryptography.Hash.Compat;
+#endif
+
 using KeePassLib.Security;
 using KeePassLib.Utility;
 

@@ -25,7 +25,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 using System.IO;
 using System.Threading;
 using System.Windows.Forms;
@@ -112,7 +112,8 @@ namespace KeePassLib.Native
 		}
 
 		private static bool? m_bIsUnix = null;
-		public static bool IsUnix()
+
+        public static bool IsUnix()
 		{
 			if(m_bIsUnix.HasValue) return m_bIsUnix.Value;
 
@@ -128,18 +129,20 @@ namespace KeePassLib.Native
 			return m_bIsUnix.Value;
 		}
 
-		private static PlatformID? m_platID = null;
+        private static PlatformID? m_platID = null;
 		public static PlatformID GetPlatformID()
 		{
 			if(m_platID.HasValue) return m_platID.Value;
 
-#if KeePassUAP
-			m_platID = EnvironmentExt.OSVersion.Platform;
+#if KeePassUWP
+            m_platID = PlatformID.Win32NT;
+#elif KeePassUAP
+            m_platID = EnvironmentExt.OSVersion.Platform;
 #else
 			m_platID = Environment.OSVersion.Platform;
 #endif
 
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !KeePassUWP)
 			// Mono returns PlatformID.Unix on Mac OS X, workaround this
 			if(m_platID.Value == PlatformID.Unix)
 			{
@@ -149,7 +152,7 @@ namespace KeePassLib.Native
 			}
 #endif
 
-			return m_platID.Value;
+            return m_platID.Value;
 		}
 
 		private static DesktopType? m_tDesktop = null;
@@ -202,7 +205,7 @@ namespace KeePassLib.Native
 			return m_tDesktop.Value;
 		}
 
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !KeePassUWP)
 		public static string RunConsoleApp(string strAppPath, string strParams)
 		{
 			return RunConsoleApp(strAppPath, strParams, null);
@@ -354,14 +357,14 @@ namespace KeePassLib.Native
 		}
 #endif
 
-		/// <summary>
-		/// Transform a key.
-		/// </summary>
-		/// <param name="pBuf256">Source and destination buffer.</param>
-		/// <param name="pKey256">Key to use in the transformation.</param>
-		/// <param name="uRounds">Number of transformation rounds.</param>
-		/// <returns>Returns <c>true</c>, if the key was transformed successfully.</returns>
-		public static bool TransformKey256(byte[] pBuf256, byte[] pKey256,
+        /// <summary>
+        /// Transform a key.
+        /// </summary>
+        /// <param name="pBuf256">Source and destination buffer.</param>
+        /// <param name="pKey256">Key to use in the transformation.</param>
+        /// <param name="uRounds">Number of transformation rounds.</param>
+        /// <returns>Returns <c>true</c>, if the key was transformed successfully.</returns>
+        public static bool TransformKey256(byte[] pBuf256, byte[] pKey256,
 			ulong uRounds)
 		{
 #if KeePassUAP
@@ -445,5 +448,19 @@ namespace KeePassLib.Native
 			if(kvpPointers.Value != IntPtr.Zero)
 				Marshal.FreeHGlobal(kvpPointers.Value);
 		}
-	}
+
+#if KeePassUWP
+        public enum PlatformID
+        {
+            Win32S = 0,
+            Win32Windows = 1,
+            Win32NT = 2,
+            WinCE = 3,
+            Unix = 4,
+            Xbox = 5,
+            MacOSX = 6,
+            Linux = 7
+        }
+#endif
+    }
 }

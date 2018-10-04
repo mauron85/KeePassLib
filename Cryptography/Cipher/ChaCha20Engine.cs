@@ -122,8 +122,13 @@ namespace KeePassLib.Cryptography.Cipher
 					m_c.Dispose();
 					m_c = null;
 
-					m_sBase.Close();
-					m_sBase = null;
+#if KeePassUWP
+                    m_sBase.Dispose();
+#else
+                    m_sBase.Close();
+#endif
+
+                    m_sBase = null;
 				}
 
 				m_pbBuffer = null;

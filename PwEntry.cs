@@ -21,8 +21,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 using System.Drawing;
+#endif
+
+#if KeePassUWP
+using Windows.UI;
 #endif
 
 using KeePassLib.Collections;
@@ -51,10 +55,16 @@ namespace KeePassLib
 		private PwIcon m_pwIcon = PwIcon.Key;
 		private PwUuid m_pwCustomIconID = PwUuid.Zero;
 
-		private Color m_clrForeground = Color.Empty;
+#if KeePassUWP
+        private Color m_clrForeground = Colors.Transparent;
+		private Color m_clrBackground = Colors.Transparent;
+#else
+        private Color m_clrForeground = Color.Empty;
 		private Color m_clrBackground = Color.Empty;
 
-		private DateTime m_tCreation = PwDefs.DtDefaultNow;
+#endif
+
+        private DateTime m_tCreation = PwDefs.DtDefaultNow;
 		private DateTime m_tLastMod = PwDefs.DtDefaultNow;
 		private DateTime m_tLastAccess = PwDefs.DtDefaultNow;
 		private DateTime m_tExpire = PwDefs.DtDefaultNow;

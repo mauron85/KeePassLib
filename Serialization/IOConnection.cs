@@ -25,13 +25,17 @@ using System.Net;
 using System.Reflection;
 using System.Text;
 
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !KeePassUWP)
 using System.Net.Cache;
 using System.Net.Security;
 #endif
 
 #if !KeePassUAP
 using System.Security.Cryptography.X509Certificates;
+#endif
+
+#if KeePassUWP
+using KeePassLib.Net.Compat;
 #endif
 
 using KeePassLib.Native;
@@ -49,7 +53,9 @@ namespace KeePassLib.Serialization
 			m_ioc = ioc;
 		}
 
-		protected override WebRequest GetWebRequest(Uri address)
+        public NetworkCredential Credentials { get; internal set; }
+
+        protected override WebRequest GetWebRequest(Uri address)
 		{
 			WebRequest request = base.GetWebRequest(address);
 			IOConnection.ConfigureWebRequest(request, m_ioc);
@@ -116,7 +122,7 @@ namespace KeePassLib.Serialization
 			m_s = sBase;
 		}
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 		public override IAsyncResult BeginRead(byte[] buffer, int offset,
 			int count, AsyncCallback callback, object state)
 		{
@@ -130,14 +136,14 @@ namespace KeePassLib.Serialization
 		}
 #endif
 
-		protected override void Dispose(bool disposing)
+        protected override void Dispose(bool disposing)
 		{
 			if(disposing) m_s.Dispose();
 
 			base.Dispose(disposing);
 		}
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 		public override int EndRead(IAsyncResult asyncResult)
 		{
 			return m_s.EndRead(asyncResult);
@@ -214,8 +220,17 @@ namespace KeePassLib.Serialization
 						{
 							WebRequest wr = (pi.GetValue(s, null) as WebRequest);
 							if(wr != null)
-								IOConnection.DisposeResponse(wr.GetResponse(), false);
-							else { Debug.Assert(false); }
+#if KeePassUWP
+                            {
+                                var task = wr.GetResponseAsync();
+                                task.RunSynchronously();
+                                var response = task.Result;
+                                IOConnection.DisposeResponse(response, false);
+                            }                                
+#else
+                                IOConnection.DisposeResponse(wr.GetResponse(), false);
+#endif
+                            else { Debug.Assert(false); }
 						}
 						else { Debug.Assert(false); }
 					}
@@ -269,7 +284,7 @@ namespace KeePassLib.Serialization
 		public static event EventHandler<IOAccessEventArgs> IOAccessPre;
 
 #if !KeePassLibSD
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 		// Allow self-signed certificates, expired certificates, etc.
 		private static bool AcceptCertificate(object sender,
 			X509Certificate certificate, X509Chain chain,
@@ -279,7 +294,7 @@ namespace KeePassLib.Serialization
 		}
 #endif
 
-		internal static void SetProxy(ProxyServerType pst, string strAddr,
+        internal static void SetProxy(ProxyServerType pst, string strAddr,
 			string strPort, ProxyAuthType pat, string strUserName,
 			string strPassword)
 		{
@@ -309,15 +324,15 @@ namespace KeePassLib.Serialization
 
 			if(IsHttpWebRequest(request))
 			{
-				// WebDAV support
-#if !KeePassUAP
+                // WebDAV support
+#if !KeePassUAP && !KeePassUWP
 				request.PreAuthenticate = true; // Also auth GET
 #endif
-				if(string.Equals(request.Method, WebRequestMethods.Http.Post,
+                if (string.Equals(request.Method, WebRequestMethods.Http.Post,
 					StrUtil.CaseIgnoreCmp))
 					request.Method = WebRequestMethods.Http.Put;
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 				HttpWebRequest hwr = (request as HttpWebRequest);
 				if(hwr != null)
 				{
@@ -326,9 +341,9 @@ namespace KeePassLib.Serialization
 				}
 				else { Debug.Assert(false); }
 #endif
-			}
-#if !KeePassUAP
-			else if(IsFtpWebRequest(request))
+            }
+#if !KeePassUAP && !KeePassUWP
+            else if(IsFtpWebRequest(request))
 			{
 				FtpWebRequest fwr = (request as FtpWebRequest);
 				if(fwr != null)
@@ -340,24 +355,24 @@ namespace KeePassLib.Serialization
 			}
 #endif
 
-#if !KeePassUAP
-			// Not implemented and ignored in Mono < 2.10
-			try
-			{
+#if !KeePassUAP && !KeePassUWP
+            // Not implemented and ignored in Mono < 2.10
+            try
+            {
 				request.CachePolicy = new RequestCachePolicy(RequestCacheLevel.NoCacheNoStore);
 			}
 			catch(NotImplementedException) { }
 			catch(Exception) { Debug.Assert(false); }
 #endif
 
-			try
-			{
+            try
+            {
 				IWebProxy prx;
 				if(GetWebProxy(out prx)) request.Proxy = prx;
 			}
 			catch(Exception) { Debug.Assert(false); }
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 			long? olTimeout = p.GetLong(IocKnownProperties.Timeout);
 			if(olTimeout.HasValue && (olTimeout.Value >= 0))
 				request.Timeout = (int)Math.Min(olTimeout.Value, (long)int.MaxValue);
@@ -365,11 +380,11 @@ namespace KeePassLib.Serialization
 			bool? ob = p.GetBool(IocKnownProperties.PreAuth);
 			if(ob.HasValue) request.PreAuthenticate = ob.Value;
 #endif
-		}
+        }
 
-		internal static void ConfigureWebClient(WebClient wc)
+        internal static void ConfigureWebClient(WebClient wc)
 		{
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 			// Not implemented and ignored in Mono < 2.10
 			try
 			{
@@ -379,8 +394,8 @@ namespace KeePassLib.Serialization
 			catch(Exception) { Debug.Assert(false); }
 #endif
 
-			try
-			{
+            try
+            {
 				IWebProxy prx;
 				if(GetWebProxy(out prx)) wc.Proxy = prx;
 			}
@@ -409,20 +424,20 @@ namespace KeePassLib.Serialization
 					{
 						// First try default (from config), then system
 						prx = WebRequest.DefaultWebProxy;
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 						if(prx == null) prx = WebRequest.GetSystemWebProxy();
 #endif
-					}
-					else if(m_strProxyPort.Length > 0)
+                    }
+                    else if(m_strProxyPort.Length > 0)
 						prx = new WebProxy(m_strProxyAddr, int.Parse(m_strProxyPort));
 					else prx = new WebProxy(m_strProxyAddr);
 
 					return (prx != null);
 				}
-#if KeePassUAP
+#if KeePassUAP || KeePassUWP
 				catch(Exception) { Debug.Assert(false); }
 #else
-				catch(Exception ex)
+                catch (Exception ex)
 				{
 					string strInfo = m_strProxyAddr;
 					if(m_strProxyPort.Length > 0)
@@ -437,11 +452,11 @@ namespace KeePassLib.Serialization
 			Debug.Assert(m_pstProxyType == ProxyServerType.System);
 			try
 			{
-				// First try system, then default (from config)
-#if !KeePassUAP
+                // First try system, then default (from config)
+#if !KeePassUAP && !KeePassUWP
 				prx = WebRequest.GetSystemWebProxy();
 #endif
-				if(prx == null) prx = WebRequest.DefaultWebProxy;
+                if (prx == null) prx = WebRequest.DefaultWebProxy;
 
 				return (prx != null);
 			}
@@ -484,7 +499,7 @@ namespace KeePassLib.Serialization
 
 		private static void PrepareWebAccess(IOConnectionInfo ioc)
 		{
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 			IocProperties p = ((ioc != null) ? ioc.Properties : null);
 			if(p == null) { Debug.Assert(false); p = new IocProperties(); }
 
@@ -538,9 +553,9 @@ namespace KeePassLib.Serialization
 			}
 			catch(Exception) { Debug.Assert(false); }
 #endif
-		}
+        }
 
-		private static IOWebClient CreateWebClient(IOConnectionInfo ioc)
+        private static IOWebClient CreateWebClient(IOConnectionInfo ioc)
 		{
 			PrepareWebAccess(ioc);
 
@@ -667,7 +682,13 @@ namespace KeePassLib.Serialization
 
 				// We didn't download the file completely; close may throw
 				// an exception -- that's okay
-				try { s.Close(); }
+				try {
+#if KeePassUWP
+                    s.Dispose();
+#else
+                    s.Close();
+#endif
+                }
 				catch(Exception) { }
 			}
 			catch(Exception)
@@ -699,10 +720,15 @@ namespace KeePassLib.Serialization
 				}
 				else req.Method = WrmDeleteFile;
 
-				DisposeResponse(req.GetResponse(), true);
-			}
+#if KeePassUWP
+                //TODO implement
+                throw new NotImplementedException();
+#else
+                DisposeResponse(req.GetResponse(), true);
 #endif
-		}
+            }
+#endif
+            }
 
 		/// <summary>
 		/// Rename/move a file. For local file system and WebDAV, the
@@ -725,19 +751,19 @@ namespace KeePassLib.Serialization
 			{
 				if(IsHttpWebRequest(req))
 				{
-#if KeePassUAP
+#if KeePassUAP || KeePassUWP
 					throw new NotSupportedException();
 #else
-					req.Method = "MOVE";
+                    req.Method = "MOVE";
 					req.Headers.Set("Destination", iocTo.Path); // Full URL supported
 #endif
 				}
 				else if(IsFtpWebRequest(req))
 				{
-#if KeePassUAP
+#if KeePassUAP || KeePassUWP
 					throw new NotSupportedException();
 #else
-					req.Method = WebRequestMethods.Ftp.Rename;
+                    req.Method = WebRequestMethods.Ftp.Rename;
 					string strTo = UrlUtil.GetFileName(iocTo.Path);
 
 					// We're affected by .NET bug 621450:
@@ -755,7 +781,7 @@ namespace KeePassLib.Serialization
 				}
 				else
 				{
-#if KeePassUAP
+#if KeePassUAP || KeePassUWP
 					throw new NotSupportedException();
 #else
 					req.Method = WrmMoveFile;
@@ -763,24 +789,24 @@ namespace KeePassLib.Serialization
 #endif
 				}
 
-#if !KeePassUAP // Unreachable code
+#if !KeePassUAP && !KeePassUWP // Unreachable code
 				DisposeResponse(req.GetResponse(), true);
 #endif
-			}
+            }
 #endif
 
-			// using(Stream sIn = IOConnection.OpenRead(iocFrom))
-			// {
-			//	using(Stream sOut = IOConnection.OpenWrite(iocTo))
-			//	{
-			//		MemUtil.CopyStream(sIn, sOut);
-			//		sOut.Close();
-			//	}
-			//
-			//	sIn.Close();
-			// }
-			// DeleteFile(iocFrom);
-		}
+            // using(Stream sIn = IOConnection.OpenRead(iocFrom))
+            // {
+            //	using(Stream sOut = IOConnection.OpenWrite(iocTo))
+            //	{
+            //		MemUtil.CopyStream(sIn, sOut);
+            //		sOut.Close();
+            //	}
+            //
+            //	sIn.Close();
+            // }
+            // DeleteFile(iocFrom);
+        }
 
 #if !KeePassLibSD
 		private static bool SendCommand(IOConnectionInfo ioc, string strMethod)
@@ -789,15 +815,20 @@ namespace KeePassLib.Serialization
 			{
 				WebRequest req = CreateWebRequest(ioc);
 				req.Method = strMethod;
-				DisposeResponse(req.GetResponse(), true);
-			}
+#if KeePassUWP
+                //TODO implement
+                throw new NotImplementedException();
+#else
+                DisposeResponse(req.GetResponse(), true);
+#endif
+            }
 			catch(Exception) { return false; }
 
 			return true;
 		}
 #endif
 
-		internal static void DisposeResponse(WebResponse wr, bool bGetStream)
+                internal static void DisposeResponse(WebResponse wr, bool bGetStream)
 		{
 			if(wr == null) return;
 
@@ -806,13 +837,26 @@ namespace KeePassLib.Serialization
 				if(bGetStream)
 				{
 					Stream s = wr.GetResponseStream();
-					if(s != null) s.Close();
-				}
+                    if (s != null)
+                    {
+#if KeePassUWP
+                        s.Dispose();
+#else
+                        s.Close();
+#endif
+                    }
+                }
 			}
 			catch(Exception) { Debug.Assert(false); }
 
-			try { wr.Close(); }
-			catch(Exception) { Debug.Assert(false); }
+			try {
+#if KeePassUWP
+                wr.Dispose();
+#else
+                wr.Close();
+#endif
+            }
+            catch (Exception) { Debug.Assert(false); }
 		}
 
 		public static byte[] ReadFile(IOConnectionInfo ioc)
@@ -832,8 +876,22 @@ namespace KeePassLib.Serialization
 			catch(Exception) { }
 			finally
 			{
-				if(sIn != null) sIn.Close();
-				if(ms != null) ms.Close();
+                if (sIn != null)
+                {
+#if KeePassUWP
+                    sIn.Dispose();
+#else
+                    sIn.Close();
+#endif
+                }
+                if (ms != null)
+                {
+#if KeePassUWP
+                    ms.Dispose();
+#else
+                    ms.Close();
+#endif
+                }
 			}
 
 			return null;
@@ -883,7 +941,7 @@ namespace KeePassLib.Serialization
 		{
 			if(wr == null) { Debug.Assert(false); return false; }
 
-#if KeePassUAP
+#if KeePassUAP || KeePassUWP
 			return string.Equals(wr.RequestUri.Scheme, "ftp", StrUtil.CaseIgnoreCmp);
 #else
 			return (wr is FtpWebRequest);
@@ -894,8 +952,8 @@ namespace KeePassLib.Serialization
 		{
 			if(wr == null) { Debug.Assert(false); return false; }
 
-#if KeePassUAP
-			return string.Equals(wr.RequestUri.Scheme, "file", StrUtil.CaseIgnoreCmp);
+#if KeePassUAP || KeePassUWP
+            return string.Equals(wr.RequestUri.Scheme, "file", StrUtil.CaseIgnoreCmp);
 #else
 			return (wr is FileWebRequest);
 #endif

@@ -65,10 +65,14 @@ namespace KeePassLib.Cryptography
 			if(vPassword.Length == 0) { uDictSize = 0; return false; }
 
 #if DEBUG
-			Array.ForEach(vPassword, ch => Debug.Assert(ch == char.ToLower(ch)));
+#if KeePassUWP
+            Arrays.ForEach(vPassword, ch => Debug.Assert(ch == char.ToLower(ch)));
+#else
+            Array.ForEach(vPassword, ch => Debug.Assert(ch == char.ToLower(ch)));
+#endif
 #endif
 
-			try { return IsPopularPasswordPriv(vPassword, out uDictSize); }
+            try { return IsPopularPasswordPriv(vPassword, out uDictSize); }
 			catch(Exception) { Debug.Assert(false); }
 
 			uDictSize = 0;

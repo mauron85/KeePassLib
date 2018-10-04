@@ -894,8 +894,8 @@ namespace KeePassLib
 			{
 				RegexOptions ro = RegexOptions.None; // RegexOptions.Compiled
 				if((sp.ComparisonMode == StringComparison.CurrentCultureIgnoreCase) ||
-#if !KeePassUAP
-					(sp.ComparisonMode == StringComparison.InvariantCultureIgnoreCase) ||
+#if !KeePassUAP && !KeePassUWP
+                    (sp.ComparisonMode == StringComparison.InvariantCultureIgnoreCase) ||
 #endif
 					(sp.ComparisonMode == StringComparison.OrdinalIgnoreCase))
 				{

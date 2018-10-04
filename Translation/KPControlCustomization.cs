@@ -25,7 +25,7 @@ using System.Globalization;
 using System.Text;
 using System.Xml.Serialization;
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 using System.Drawing;
 using System.Windows.Forms;
 #endif
@@ -114,7 +114,7 @@ namespace KeePassLib.Translation
 			else { Debug.Assert(false); }
 		}
 
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !KeePassUWP)
 		internal void ApplyTo(Control c)
 		{
 			Debug.Assert(c != null); if(c == null) return;
@@ -186,7 +186,7 @@ namespace KeePassLib.Translation
 		}
 #endif
 
-		public static string ToControlRelativeString(string strEncoded)
+        public static string ToControlRelativeString(string strEncoded)
 		{
 			Debug.Assert(strEncoded != null);
 			if(strEncoded == null) throw new ArgumentNullException("strEncoded");
@@ -269,7 +269,7 @@ namespace KeePassLib.Translation
 			return m_strMemberName.CompareTo(kpOther.Name);
 		}
 
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !KeePassUWP)
 		private static readonly Type[] m_vTextControls = new Type[] {
 			typeof(MenuStrip), typeof(PictureBox), typeof(ListView),
 			typeof(TreeView), typeof(ToolStrip), typeof(WebBrowser),
@@ -396,5 +396,5 @@ namespace KeePassLib.Translation
 			return (m_strHash == strHash);
 		}
 #endif
-	}
+    }
 }

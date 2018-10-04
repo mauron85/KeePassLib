@@ -24,7 +24,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !KeePassUWP)
 using System.Security.AccessControl;
 #endif
 
@@ -109,7 +109,7 @@ namespace KeePassLib.Serialization
 				catch(Exception) { Debug.Assert(false); }
 			}
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 			// Prevent transactions for FTP URLs under .NET 4.0 in order to
 			// avoid/workaround .NET bug 621450:
 			// https://connect.microsoft.com/VisualStudio/feedback/details/621450/problem-renaming-file-on-ftp-server-using-ftpwebrequest-in-net-framework-4-0-vs2010-only
@@ -118,7 +118,7 @@ namespace KeePassLib.Serialization
 				m_bTransacted = false;
 #endif
 
-			foreach(KeyValuePair<string, bool> kvp in g_dEnabled)
+            foreach (KeyValuePair<string, bool> kvp in g_dEnabled)
 			{
 				if(strPath.StartsWith(kvp.Key, StrUtil.CaseIgnoreCmp))
 				{
@@ -198,8 +198,9 @@ namespace KeePassLib.Serialization
 			}
 
 			bool bMadeUnhidden = UrlUtil.UnhideFile(m_iocBase.Path);
+            byte[] pbSec = null;
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 			// 'All' includes 'Audit' (SACL), which requires SeSecurityPrivilege,
 			// which we usually don't have and therefore get an exception;
 			// trying to set 'Owner' or 'Group' can result in an
@@ -207,9 +208,8 @@ namespace KeePassLib.Serialization
 			const AccessControlSections acs = AccessControlSections.Access;
 
 			bool bEfsEncrypted = false;
-			byte[] pbSec = null;
 #endif
-			DateTime? otCreation = null;
+            DateTime? otCreation = null;
 
 			bool bBaseExists = IOConnection.FileExists(m_iocBase);
 			if(bBaseExists && m_iocBase.IsLocalFile())
@@ -217,20 +217,20 @@ namespace KeePassLib.Serialization
 				// FileAttributes faBase = FileAttributes.Normal;
 				try
 				{
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 					FileAttributes faBase = File.GetAttributes(m_iocBase.Path);
 					bEfsEncrypted = ((long)(faBase & FileAttributes.Encrypted) != 0);
 					try { if(bEfsEncrypted) File.Decrypt(m_iocBase.Path); } // For TxF
 					catch(Exception) { Debug.Assert(false); }
 #endif
-					otCreation = File.GetCreationTimeUtc(m_iocBase.Path);
-#if !KeePassUAP
+                    otCreation = File.GetCreationTimeUtc(m_iocBase.Path);
+#if !KeePassUAP && !KeePassUWP
 					// May throw with Mono
 					FileSecurity sec = File.GetAccessControl(m_iocBase.Path, acs);
 					if(sec != null) pbSec = sec.GetSecurityDescriptorBinaryForm();
 #endif
-				}
-				catch(Exception) { Debug.Assert(NativeLib.IsUnix()); }
+                }
+                catch (Exception) { Debug.Assert(NativeLib.IsUnix()); }
 
 				// if((long)(faBase & FileAttributes.ReadOnly) != 0)
 				//	throw new UnauthorizedAccessException();
@@ -252,7 +252,7 @@ namespace KeePassLib.Serialization
 				if(otCreation.HasValue && (otCreation.Value.Year >= 1971))
 					File.SetCreationTimeUtc(m_iocBase.Path, otCreation.Value);
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 				if(bEfsEncrypted)
 				{
 					try { File.Encrypt(m_iocBase.Path); }
@@ -273,8 +273,8 @@ namespace KeePassLib.Serialization
 					File.SetAccessControl(m_iocBase.Path, sec);
 				}
 #endif
-			}
-			catch(Exception) { Debug.Assert(false); }
+            }
+            catch (Exception) { Debug.Assert(false); }
 
 			if(bMadeUnhidden) UrlUtil.HideFile(m_iocBase.Path, true);
 		}

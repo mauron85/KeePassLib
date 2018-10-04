@@ -130,8 +130,13 @@ namespace KeePassLib.Serialization
 			{
 				if(!m_bWriting) // Reading mode
 				{
-					m_brInput.Close();
-					m_brInput = null;
+#if KeePassUWP
+                    m_brInput.Dispose();
+#else
+                    m_brInput.Close();
+#endif
+
+                    m_brInput = null;
 				}
 				else // Writing mode
 				{
@@ -144,12 +149,21 @@ namespace KeePassLib.Serialization
 					}
 
 					Flush();
-					m_bwOutput.Close();
-					m_bwOutput = null;
+#if KeePassUWP
+                    m_bwOutput.Dispose();
+#else
+                    m_bwOutput.Close();
+#endif
+                    m_bwOutput = null;
 				}
 
-				m_sBaseStream.Close();
-				m_sBaseStream = null;
+#if KeePassUWP
+                m_sBaseStream.Dispose();
+#else
+                m_sBaseStream.Close();
+#endif
+
+                m_sBaseStream = null;
 			}
 
 			base.Dispose(disposing);

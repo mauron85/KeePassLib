@@ -24,8 +24,15 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 
-#if !KeePassUAP
+#if KeePassUWP
 using System.Security.Cryptography;
+using KeePassLib.Cryptography.Compat;
+using KeePassLib.Cryptography.Hash.Compat;
+using HMACSHA256 = KeePassLib.Cryptography.Hash.Compat.HMACSHA256;
+#elif !KeePassUAP
+using System.Security.Cryptography;
+#else
+using HMACSHA256 = System.Security.Cryptography.HMACSHA256;
 #endif
 
 using KeePassLib.Native;
@@ -202,16 +209,18 @@ namespace KeePassLib.Cryptography
 				// CNG/BCrypt, which is much faster)
 				if(!NativeLib.IsUnix()) return null;
 
-				string strFqn = Assembly.CreateQualifiedName(
+#if !KeePassUWP
+                string strFqn = Assembly.CreateQualifiedName(
 					"System.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
 					"System.Security.Cryptography.AesCryptoServiceProvider");
 
 				Type t = Type.GetType(strFqn);
 				if(t == null) return null;
 
-				return (Activator.CreateInstance(t) as SymmetricAlgorithm);
-			}
-			catch(Exception) { Debug.Assert(false); }
+                return (Activator.CreateInstance(t) as SymmetricAlgorithm);
+#endif
+            }
+            catch (Exception) { Debug.Assert(false); }
 
 			return null;
 		}

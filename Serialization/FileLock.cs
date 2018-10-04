@@ -142,9 +142,12 @@ namespace KeePassLib.Serialization
 				}
 				catch(FileNotFoundException) { }
 				catch(Exception) { Debug.Assert(false); }
-				finally { if(s != null) s.Close(); }
-
-				return null;
+#if KeePassUWP
+                finally { if(s != null) s.Dispose(); }
+#else
+                finally { if(s != null) s.Close(); }
+#endif
+                return null;
 			}
 
 			// Throws on error
@@ -158,8 +161,12 @@ namespace KeePassLib.Serialization
 					string strTime = TimeUtil.SerializeUtc(DateTime.UtcNow);
 
 					lfi = new LockFileInfo(Convert.ToBase64String(pbID), strTime,
-#if KeePassUAP
-						EnvironmentExt.UserName, EnvironmentExt.MachineName,
+#if KeePassUWP
+                        //TODO: get real username and domain
+                        "username", InfoUtil.DeviceManufacturer,
+                        "domain");
+#elif KeePassUAP
+                        EnvironmentExt.UserName, EnvironmentExt.MachineName,
 						EnvironmentExt.UserDomainName);
 #elif KeePassLibSD
 						string.Empty, string.Empty, string.Empty);
@@ -168,7 +175,7 @@ namespace KeePassLib.Serialization
 						Environment.UserDomainName);
 #endif
 
-					StringBuilder sb = new StringBuilder();
+                    StringBuilder sb = new StringBuilder();
 #if !KeePassLibSD
 					sb.AppendLine(LockFileHeader);
 					sb.AppendLine(lfi.ID);
@@ -191,9 +198,13 @@ namespace KeePassLib.Serialization
 					if(s == null) throw new IOException(iocLockFile.GetDisplayName());
 					s.Write(pbFile, 0, pbFile.Length);
 				}
-				finally { if(s != null) s.Close(); }
+#if KeePassUWP
+                finally { if (s != null) s.Dispose(); }
+#else
+                finally { if(s != null) s.Close(); }
+#endif
 
-				return lfi;
+                return lfi;
 			}
 		}
 

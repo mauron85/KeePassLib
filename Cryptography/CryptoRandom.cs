@@ -24,10 +24,15 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 using System.Drawing;
 using System.Security.Cryptography;
 using System.Windows.Forms;
+#endif
+
+#if KeePassUWP
+using System.Runtime.InteropServices.WindowsRuntime;
+using Wscc = Windows.Security.Cryptography.Core;
 #endif
 
 using KeePassLib.Native;
@@ -44,8 +49,10 @@ namespace KeePassLib.Cryptography
 	{
 		private byte[] m_pbEntropyPool = new byte[64];
 		private ulong m_uCounter;
-		private RNGCryptoServiceProvider m_rng = new RNGCryptoServiceProvider();
-		private ulong m_uGeneratedBytesCount = 0;
+#if !KeePassUWP
+        private RNGCryptoServiceProvider m_rng = new RNGCryptoServiceProvider();
+#endif
+        private ulong m_uGeneratedBytesCount = 0;
 
 		private static readonly object g_oSyncRoot = new object();
 		private readonly object m_oSyncRoot = new object();
@@ -103,13 +110,35 @@ namespace KeePassLib.Cryptography
 			AddEntropy(GetCspData());
 		}
 
-		/// <summary>
-		/// Update the internal seed of the random number generator based
-		/// on entropy data.
-		/// This method is thread-safe.
-		/// </summary>
-		/// <param name="pbEntropy">Entropy bytes.</param>
-		public void AddEntropy(byte[] pbEntropy)
+        private byte[] GetHash(byte[] pbEntropy)
+        {
+            byte[] pbNewData;
+
+#if KeePassUWP
+            Wscc.HashAlgorithmProvider hashAlgo = Wscc.HashAlgorithmProvider.OpenAlgorithm(Wscc.HashAlgorithmNames.Sha512);
+            pbNewData = hashAlgo.HashData(pbEntropy.AsBuffer()).ToArray();
+#else
+
+#if KeePassLibSD
+            using(SHA256Managed shaNew = new SHA256Managed())
+#else
+            using (SHA512Managed shaNew = new SHA512Managed())
+#endif
+            {
+                pbNewData = shaNew.ComputeHash(pbEntropy);
+            }
+#endif
+
+            return pbNewData;
+        }
+
+        /// <summary>
+        /// Update the internal seed of the random number generator based
+        /// on entropy data.
+        /// This method is thread-safe.
+        /// </summary>
+        /// <param name="pbEntropy">Entropy bytes.</param>
+        public void AddEntropy(byte[] pbEntropy)
 		{
 			if(pbEntropy == null) { Debug.Assert(false); return; }
 			if(pbEntropy.Length == 0) { Debug.Assert(false); return; }
@@ -117,17 +146,10 @@ namespace KeePassLib.Cryptography
 			byte[] pbNewData = pbEntropy;
 			if(pbEntropy.Length > 64)
 			{
-#if KeePassLibSD
-				using(SHA256Managed shaNew = new SHA256Managed())
-#else
-				using(SHA512Managed shaNew = new SHA512Managed())
-#endif
-				{
-					pbNewData = shaNew.ComputeHash(pbEntropy);
-				}
-			}
+                pbNewData = GetHash(pbEntropy);
+            }
 
-			lock(m_oSyncRoot)
+            lock (m_oSyncRoot)
 			{
 				int cbPool = m_pbEntropyPool.Length;
 				int cbNew = pbNewData.Length;
@@ -138,14 +160,7 @@ namespace KeePassLib.Cryptography
 
 				MemUtil.ZeroByteArray(m_pbEntropyPool);
 
-#if KeePassLibSD
-				using(SHA256Managed shaPool = new SHA256Managed())
-#else
-				using(SHA512Managed shaPool = new SHA512Managed())
-#endif
-				{
-					m_pbEntropyPool = shaPool.ComputeHash(pbCmp);
-				}
+                m_pbEntropyPool = GetHash(pbCmp);
 
 				MemUtil.ZeroByteArray(pbCmp);
 			}
@@ -162,7 +177,7 @@ namespace KeePassLib.Cryptography
 			pb = MemUtil.Int64ToBytes(DateTime.UtcNow.ToBinary());
 			MemUtil.Write(ms, pb);
 
-#if !KeePassLibSD
+#if !KeePassLibSD && !KeePassUWP
 			// In try-catch for systems without GUI;
 			// https://sourceforge.net/p/keepass/discussion/329221/thread/20335b73/
 			try
@@ -181,8 +196,11 @@ namespace KeePassLib.Cryptography
 
 			try
 			{
-#if KeePassUAP
-				string strOS = EnvironmentExt.OSVersion.VersionString;
+
+#if KeePassUWP
+                string strOS = InfoUtil.SystemVersion;
+#elif KeePassUAP
+                string strOS = EnvironmentExt.OSVersion.VersionString;
 #else
 				string strOS = Environment.OSVersion.VersionString;
 #endif
@@ -191,14 +209,14 @@ namespace KeePassLib.Cryptography
 				pb = MemUtil.Int32ToBytes(Environment.ProcessorCount);
 				MemUtil.Write(ms, pb);
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 				AddStrHash(ms, Environment.CommandLine);
 
 				pb = MemUtil.Int64ToBytes(Environment.WorkingSet);
 				MemUtil.Write(ms, pb);
 #endif
-			}
-			catch(Exception) { Debug.Assert(false); }
+            }
+            catch (Exception) { Debug.Assert(false); }
 
 			try
 			{
@@ -210,8 +228,10 @@ namespace KeePassLib.Cryptography
 			}
 			catch(Exception) { Debug.Assert(false); }
 
-#if KeePassUAP
-			pb = DiagnosticsExt.GetProcessEntropy();
+#if KeePassUWP
+            // TODO: check process entropy
+#elif KeePassUAP
+            pb = DiagnosticsExt.GetProcessEntropy();
 			MemUtil.Write(ms, pb);
 #elif !KeePassLibSD
 			try
@@ -253,7 +273,7 @@ namespace KeePassLib.Cryptography
 			catch(Exception) { Debug.Assert(NativeLib.IsUnix()); }
 #endif
 
-			try
+            try
 			{
 				CultureInfo ci = CultureInfo.CurrentCulture;
 				if(ci != null)
@@ -269,7 +289,11 @@ namespace KeePassLib.Cryptography
 			MemUtil.Write(ms, pb);
 
 			byte[] pbAll = ms.ToArray();
-			ms.Close();
+#if KeePassUWP
+            ms.Dispose();
+#else
+            ms.Close();
+#endif
 			return pbAll;
 		}
 
@@ -285,10 +309,20 @@ namespace KeePassLib.Cryptography
 
 		private byte[] GetCspData()
 		{
-			byte[] pbCspRandom = new byte[32];
+#if !WINDOWS_UWP
+            byte[] pbCspRandom = new byte[32];
 			m_rng.GetBytes(pbCspRandom);
 			return pbCspRandom;
-		}
+#else
+            // Generate random data and copy it to a buffer.
+            Windows.Storage.Streams.IBuffer buffer = Windows.Security.Cryptography.CryptographicBuffer.GenerateRandom(32);
+
+            // Encode the buffer to a hexadecimal string (for display).
+            string randomHex = Windows.Security.Cryptography.CryptographicBuffer.EncodeToHexString(buffer);
+
+            return System.Text.Encoding.ASCII.GetBytes(randomHex);
+#endif
+        }
 
 		private byte[] GenerateRandom256()
 		{

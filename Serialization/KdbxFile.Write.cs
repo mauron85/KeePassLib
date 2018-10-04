@@ -26,7 +26,7 @@ using System.Security;
 using System.Text;
 using System.Xml;
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 using System.Drawing;
 using System.Security.Cryptography;
 #endif
@@ -101,8 +101,8 @@ namespace KeePassLib.Serialization
 			List<Stream> lStreams = new List<Stream>();
 			lStreams.Add(sSaveTo);
 
-			HashingStreamEx sHashing = new HashingStreamEx(sSaveTo, true, null);
-			lStreams.Add(sHashing);
+            HashingStreamEx sHashing = new HashingStreamEx(sSaveTo, true, null);
+            lStreams.Add(sHashing);
 
 			try
 			{
@@ -219,9 +219,17 @@ namespace KeePassLib.Serialization
 			}
 		}
 
-		private void CommonCleanUpWrite(List<Stream> lStreams, HashingStreamEx sHashing)
+        private void CommonCleanUpWrite(List<Stream> lStreams, HashingStreamEx sHashing)
 		{
-			if(m_xmlWriter != null) { m_xmlWriter.Close(); m_xmlWriter = null; }
+			if(m_xmlWriter != null)
+            {
+#if KeePassUWP
+                m_xmlWriter.Dispose();
+#else
+                m_xmlWriter.Close();
+#endif
+                m_xmlWriter = null;
+            }
 
 			CloseStreams(lStreams);
 

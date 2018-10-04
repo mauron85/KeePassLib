@@ -27,7 +27,7 @@ using System.Security;
 using System.Text;
 using System.Xml;
 
-#if !KeePassUAP
+#if !KeePassUAP || KeePassUWP
 using System.Security.Cryptography;
 #endif
 
@@ -297,9 +297,13 @@ namespace KeePassLib.Serialization
 
 			br.CopyDataTo = null;
 			byte[] pbHeader = msHeader.ToArray();
-			msHeader.Close();
+#if KeePassUWP
+            msHeader.Dispose();
+#else
+            msHeader.Close();
+#endif
 
-			br.ReadExceptionText = strPrevExcpText;
+            br.ReadExceptionText = strPrevExcpText;
 			return pbHeader;
 		}
 

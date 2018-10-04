@@ -23,7 +23,7 @@ using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Text;
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 using System.Windows.Forms;
 #endif
 
@@ -32,7 +32,8 @@ using KeePassLib.Serialization;
 
 namespace KeePassLib.Utility
 {
-	public sealed class MessageServiceEventArgs : EventArgs
+#if !KeePassUWP
+    public sealed class MessageServiceEventArgs : EventArgs
 	{
 		private string m_strTitle = string.Empty;
 		private string m_strText = string.Empty;
@@ -55,11 +56,13 @@ namespace KeePassLib.Utility
 			m_msgIcon = msgIcon;
 		}
 	}
+#endif
 
-	public static class MessageService
+    public static class MessageService
 	{
 		private static volatile uint m_uCurrentMessageCount = 0;
 
+#if !KeePassUWP
 #if !KeePassLibSD
 		private const MessageBoxIcon m_mbiInfo = MessageBoxIcon.Information;
 		private const MessageBoxIcon m_mbiWarning = MessageBoxIcon.Warning;
@@ -74,7 +77,9 @@ namespace KeePassLib.Utility
 #endif
 		private const MessageBoxIcon m_mbiQuestion = MessageBoxIcon.Question;
 
-		public static string NewLine
+#endif //!KeePassUWP
+
+        public static string NewLine
 		{
 #if !KeePassLibSD
 			get { return Environment.NewLine; }
@@ -97,7 +102,7 @@ namespace KeePassLib.Utility
 			get { return m_uCurrentMessageCount; }
 		}
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 		public static event EventHandler<MessageServiceEventArgs> MessageShowing;
 #endif
 
@@ -163,7 +168,7 @@ namespace KeePassLib.Utility
 			return sbText.ToString();
 		}
 
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !KeePassUWP)
 		internal static Form GetTopForm()
 		{
 			FormCollection fc = Application.OpenForms;
@@ -173,7 +178,7 @@ namespace KeePassLib.Utility
 		}
 #endif
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 		internal static DialogResult SafeShowMessageBox(string strText, string strTitle,
 			MessageBoxButtons mb, MessageBoxIcon mi, MessageBoxDefaultButton mdb)
 		{
@@ -405,7 +410,7 @@ namespace KeePassLib.Utility
 		}
 #endif // !KeePassUAP
 
-		internal static string GetLoadWarningMessage(string strFilePath,
+        internal static string GetLoadWarningMessage(string strFilePath,
 			Exception ex, bool bFullException)
 		{
 			string str = string.Empty;

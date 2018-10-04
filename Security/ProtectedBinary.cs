@@ -30,6 +30,10 @@ using KeePassLib.Cryptography.Cipher;
 using KeePassLib.Native;
 using KeePassLib.Utility;
 
+#if KeePassUWP
+using KeePassLib.Security.Compat;
+#endif
+
 #if KeePassLibSD
 using KeePassLibSD;
 #endif

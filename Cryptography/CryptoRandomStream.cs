@@ -27,6 +27,10 @@ using System.Security.Cryptography;
 using KeePassLib.Cryptography.Cipher;
 using KeePassLib.Utility;
 
+#if KeePassUWP
+using KeePassLib.Cryptography.Hash.Compat;
+#endif
+
 namespace KeePassLib.Cryptography
 {
 	/// <summary>

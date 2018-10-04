@@ -30,6 +30,13 @@ using System.Xml;
 using System.Security.Cryptography;
 #endif
 
+#if KeePassUWP
+using KeePassLib.Cryptography.Hash.Compat;
+using HMACSHA256 = KeePassLib.Cryptography.Hash.Compat.HMACSHA256;
+#else
+using HMACSHA256 = System.Security.Cryptography.HMACSHA256;
+#endif
+
 using KeePassLib.Collections;
 using KeePassLib.Cryptography;
 using KeePassLib.Cryptography.Cipher;
@@ -468,11 +475,16 @@ namespace KeePassLib.Serialization
 				Debug.Assert((lStreams.IndexOf(lStreams[i]) == i) &&
 					(lStreams.LastIndexOf(lStreams[i]) == i));
 
-				try { lStreams[i].Close(); }
-				// Unnecessary exception from CryptoStream with
-				// RijndaelManagedTransform when a stream hasn't been
-				// read completely (e.g. incorrect master key)
-				catch(CryptographicException) { }
+#if KeePassUWP
+                try { lStreams[i].Dispose(); }
+#else
+                try { lStreams[i].Close(); }
+#endif
+
+                // Unnecessary exception from CryptoStream with
+                // RijndaelManagedTransform when a stream hasn't been
+                // read completely (e.g. incorrect master key)
+                catch (CryptographicException) { }
 				catch(Exception) { Debug.Assert(false); }
 			}
 

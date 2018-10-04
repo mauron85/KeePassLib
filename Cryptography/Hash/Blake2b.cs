@@ -26,6 +26,10 @@ using System.Diagnostics;
 using System.Text;
 
 #if !KeePassUAP
+using KeePassLib.Cryptography.Hash.Compat;
+#endif
+
+#if KeePassUWP
 using System.Security.Cryptography;
 #endif
 
@@ -33,9 +37,13 @@ using KeePassLib.Utility;
 
 namespace KeePassLib.Cryptography.Hash
 {
-	public sealed class Blake2b : HashAlgorithm
-	{
-		private const int NbRounds = 12;
+#if KeePassUWP
+    public sealed class Blake2b : System.Security.Cryptography.HashAlgorithm, IHashAlgorithmCompat
+#else
+    public sealed class Blake2b : HashAlgorithm
+#endif
+    {
+        private const int NbRounds = 12;
 		private const int NbBlockBytes = 128;
 		private const int NbMaxOutBytes = 64;
 
@@ -72,11 +80,15 @@ namespace KeePassLib.Cryptography.Hash
 		private ulong[] m_m = new ulong[16];
 		private ulong[] m_v = new ulong[16];
 
-		public Blake2b()
+        public byte[] Hash { get; internal set; }
+
+        public Blake2b()
 		{
 			m_cbHashLength = NbMaxOutBytes;
-			this.HashSizeValue = NbMaxOutBytes * 8; // Bits
-
+//TODO is this ok for UWP?
+#if !KeePassUWP
+            this.HashSizeValue = NbMaxOutBytes * 8; // Bits
+#endif
 			Initialize();
 		}
 
@@ -86,9 +98,11 @@ namespace KeePassLib.Cryptography.Hash
 				throw new ArgumentOutOfRangeException("cbHashLength");
 
 			m_cbHashLength = cbHashLength;
-			this.HashSizeValue = cbHashLength * 8; // Bits
-
-			Initialize();
+//TODO is this ok for UWP?
+#if !KeePassUWP
+            this.HashSizeValue = cbHashLength * 8; // Bits
+#endif
+            Initialize();
 		}
 
 		public override void Initialize()
@@ -123,7 +137,7 @@ namespace KeePassLib.Cryptography.Hash
 			v[b] = MemUtil.RotateRight64(v[b] ^ v[c], 63);
 		}
 
-		private void Compress(byte[] pb, int iOffset)
+        private void Compress(byte[] pb, int iOffset)
 		{
 			ulong[] v = m_v;
 			ulong[] m = m_m;
@@ -201,7 +215,7 @@ namespace KeePassLib.Cryptography.Hash
 			}
 		}
 
-		protected override byte[] HashFinal()
+        protected override byte[] HashFinal()
 		{
 			if(m_f[0] != 0) { Debug.Assert(false); throw new InvalidOperationException(); }
 			Debug.Assert(((m_t[1] == 0) && (m_t[0] == 0)) ||
@@ -228,5 +242,20 @@ namespace KeePassLib.Cryptography.Hash
 			MemUtil.ZeroByteArray(pbHash);
 			return pbShort;
 		}
-	}
+
+        public void Clear()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void TransformBlock(byte[] pbBuf1, int v1, int length, byte[] pbBuf2, int v2)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void TransformFinalBlock(byte[] emptyByteArray, int v1, int v2)
+        {
+            throw new NotImplementedException();
+        }
+    }
 }

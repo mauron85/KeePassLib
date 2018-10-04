@@ -349,8 +349,8 @@ namespace KeePassLib
 			set { m_bSearchInGroupNames = value; }
 		}
 
-#if KeePassUAP
-		private StringComparison m_scType = StringComparison.OrdinalIgnoreCase;
+#if KeePassUAP || KeePassUWP
+        private StringComparison m_scType = StringComparison.OrdinalIgnoreCase;
 #else
 		private StringComparison m_scType = StringComparison.InvariantCultureIgnoreCase;
 #endif

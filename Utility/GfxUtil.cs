@@ -23,10 +23,14 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+#endif
+
+#if KeePassUWP
+using Windows.UI.Xaml.Controls;
 #endif
 
 namespace KeePassLib.Utility
@@ -58,8 +62,34 @@ namespace KeePassLib.Utility
 		}
 #endif
 
-#if KeePassUAP
-		public static Image LoadImage(byte[] pb)
+#if KeePassUWP
+        private static Windows.UI.Xaml.Media.Imaging.BitmapImage GetBitmap(byte[] bytes)
+        {
+            var bmp = new Windows.UI.Xaml.Media.Imaging.BitmapImage();
+
+            using (var stream = new Windows.Storage.Streams.InMemoryRandomAccessStream())
+            {
+                using (var writer = new Windows.Storage.Streams.DataWriter(stream.GetOutputStreamAt(0)))
+                {
+                    writer.WriteBytes(bytes);
+                    writer.StoreAsync().GetResults();
+                    bmp.SetSource(stream);
+                }
+            }
+            return bmp;
+        }
+
+        public static Image LoadImage(byte[] pb)
+        {
+            if (pb == null) throw new ArgumentNullException("pb");
+
+            var img = new Image();
+            img.Source = GetBitmap(pb);
+
+            return img;
+        }
+#elif KeePassUAP
+        public static Image LoadImage(byte[] pb)
 		{
 			if(pb == null) throw new ArgumentNullException("pb");
 
@@ -424,18 +454,28 @@ namespace KeePassLib.Utility
 #endif // !KeePassLibSD
 #endif // KeePassUAP
 
-		internal static string ImageToDataUri(Image img)
+        internal static string ImageToDataUri(Image img)
 		{
 			if(img == null) { Debug.Assert(false); return string.Empty; }
 
 			byte[] pb = null;
-			using(MemoryStream ms = new MemoryStream())
+#if KeePassUWP
+            var bitmap = new Windows.UI.Xaml.Media.Imaging.RenderTargetBitmap();
+            bitmap.RenderAsync(img).GetResults();
+            var pixelBuffer = bitmap.GetPixelsAsync().GetResults();
+            pb = new byte[pixelBuffer.Length];
+            var dataReader = Windows.Storage.Streams.DataReader.FromBuffer(pixelBuffer);
+            dataReader.ReadBytes(pb);
+            dataReader.Dispose();
+#else
+            using (MemoryStream ms = new MemoryStream())
 			{
 				img.Save(ms, ImageFormat.Png);
 				pb = ms.ToArray();
 			}
+#endif
 
-			return StrUtil.DataToDataUri(pb, "image/png");
+            return StrUtil.DataToDataUri(pb, "image/png");
 		}
 	}
 }

@@ -28,6 +28,15 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 #endif
 
+#if KeePassUWP
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Engines;
+using Org.BouncyCastle.Crypto.IO;
+using Org.BouncyCastle.Crypto.Modes;
+using Org.BouncyCastle.Crypto.Paddings;
+using Org.BouncyCastle.Crypto.Parameters;
+#endif
+
 using KeePassLib.Resources;
 
 namespace KeePassLib.Cryptography.Cipher
@@ -37,7 +46,7 @@ namespace KeePassLib.Cryptography.Cipher
 	/// </summary>
 	public sealed class StandardAesEngine : ICipherEngine
 	{
-#if !KeePassUAP
+#if !KeePassUAP || KeePassUWP
 		private const CipherMode m_rCipherMode = CipherMode.CBC;
 		private const PaddingMode m_rCipherPadding = PaddingMode.PKCS7;
 #endif
@@ -119,7 +128,19 @@ namespace KeePassLib.Cryptography.Cipher
 			byte[] pbLocalKey = new byte[32];
 			Array.Copy(pbKey, pbLocalKey, 32);
 
-#if KeePassUAP
+
+#if KeePassUWP
+            var cbc = new CbcBlockCipher(new AesEngine());
+		    var bc = new PaddedBufferedBlockCipher(cbc,
+		        new Pkcs7Padding());
+		    var kp = new KeyParameter(pbLocalKey);
+		    var prmIV = new ParametersWithIV(kp, pbLocalIV);
+		    bc.Init(bEncrypt, prmIV);
+
+		    var cpRead = (bEncrypt ? null : bc);
+		    var cpWrite = (bEncrypt ? bc : null);
+            return new CipherStream(s, cpRead, cpWrite);
+#elif KeePassUAP
 			return StandardAesEngineExt.CreateStream(s, bEncrypt, pbLocalKey, pbLocalIV);
 #else
 			SymmetricAlgorithm a = CryptoUtil.CreateAes();

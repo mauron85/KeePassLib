@@ -80,8 +80,12 @@ namespace KeePassLib.Utility
 		{
 			if(m_swOut == null) return;
 
-			m_swOut.Close();
-			m_swOut = null;
+#if KeePassUWP
+            m_swOut.Dispose();
+#else
+            m_swOut.Close();
+#endif
+            m_swOut = null;
 		}
 
 		public static void Log(string strText)

@@ -26,7 +26,13 @@ using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
 
-#if KeePassUAP
+#if KeePassUWP
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Engines;
+using Org.BouncyCastle.Crypto.Parameters;
+using KdfParameters = KeePassLib.Cryptography.KeyDerivation.KdfParameters;
+using KeePassLib.Cryptography.Hash.Compat;
+#elif KeePassUAP
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Parameters;
@@ -99,14 +105,14 @@ namespace KeePassLib.Cryptography
 			TestStrUtil();
 			TestUrlUtil();
 
-#if KeePassUAP
+#if KeePassUAP && !KeePassUWP
 			SelfTestEx.Perform();
 #endif
 		}
 
 		internal static void TestFipsComplianceProblems()
 		{
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 			try { using(RijndaelManaged r = new RijndaelManaged()) { } }
 			catch(Exception exAes)
 			{
@@ -137,7 +143,7 @@ namespace KeePassLib.Cryptography
 			for(i = 0; i < 16; ++i) pbTestData[i] = 0;
 			pbTestData[0] = 0x04;
 
-#if KeePassUAP
+#if KeePassUAP || KeePassUWP
 			AesEngine r = new AesEngine();
 			r.Init(true, new KeyParameter(pbTestKey));
 			if(r.GetBlockSize() != pbTestData.Length)
@@ -1098,8 +1104,8 @@ namespace KeePassLib.Cryptography
 		private static void TestUrlUtil()
 		{
 #if DEBUG
-#if !KeePassUAP
-			Debug.Assert(Uri.UriSchemeHttp.Equals("http", StrUtil.CaseIgnoreCmp));
+#if !KeePassUAP && !KeePassUWP
+            Debug.Assert(Uri.UriSchemeHttp.Equals("http", StrUtil.CaseIgnoreCmp));
 			Debug.Assert(Uri.UriSchemeHttps.Equals("https", StrUtil.CaseIgnoreCmp));
 #endif
 

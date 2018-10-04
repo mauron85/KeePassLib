@@ -31,7 +31,7 @@ using System.Text;
 using System.Threading;
 using System.Xml;
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 using System.Windows.Forms;
 #endif
 
@@ -248,7 +248,7 @@ namespace KeePassLib.Utility
 		{
 			try
 			{
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 				const int msDelay = 250;
 
 				string strTest = ClipboardU.GetText();
@@ -280,17 +280,19 @@ namespace KeePassLib.Utility
 					Thread.Sleep(msDelay);
 				}
 #endif
-			}
-			catch(ThreadAbortException)
+            }
+            catch (ThreadAbortException)
 			{
-				try { Thread.ResetAbort(); }
+#if !KeePassUWP
+                try { Thread.ResetAbort(); }
 				catch(Exception) { Debug.Assert(false); }
+#endif
 			}
 			catch(Exception) { Debug.Assert(false); }
 			finally { g_thFixClip = null; }
 		}
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 		private static bool NeedClipboardWorkaround()
 		{
 			try
@@ -599,5 +601,5 @@ namespace KeePassLib.Utility
 			public override void WriteLine(string message) { }
 		}
 #endif
-	}
+    }
 }

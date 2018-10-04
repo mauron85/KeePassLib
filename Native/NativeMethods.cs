@@ -147,8 +147,12 @@ namespace KeePassLib.Native
 		[return: MarshalAs(UnmanagedType.Bool)]
 		internal static extern bool CloseHandle(IntPtr hObject);
 
-		[DllImport("Kernel32.dll", CharSet = CharSet.Auto, ExactSpelling = false,
-			SetLastError = true)]
+#if KeePassUWP
+        [DllImport("Kernel32.dll", CharSet = CharSet.Unicode, ExactSpelling = false,
+#else
+        [DllImport("Kernel32.dll", CharSet = CharSet.Auto, ExactSpelling = false,
+#endif
+            SetLastError = true)]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		internal static extern bool GetVolumeInformation(string lpRootPathName,
 			StringBuilder lpVolumeNameBuffer, UInt32 nVolumeNameSize,
@@ -156,8 +160,12 @@ namespace KeePassLib.Native
 			ref UInt32 lpFileSystemFlags, StringBuilder lpFileSystemNameBuffer,
 			UInt32 nFileSystemNameSize);
 
-		[DllImport("Kernel32.dll", CharSet = CharSet.Auto, ExactSpelling = false,
-			SetLastError = true)]
+#if KeePassUWP
+        [DllImport("Kernel32.dll", CharSet = CharSet.Unicode, ExactSpelling = false,
+#else
+        [DllImport("Kernel32.dll", CharSet = CharSet.Auto, ExactSpelling = false,
+#endif
+            SetLastError = true)]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		internal static extern bool MoveFileEx(string lpExistingFileName,
 			string lpNewFileName, UInt32 dwFlags);
@@ -172,14 +180,18 @@ namespace KeePassLib.Native
 		[return: MarshalAs(UnmanagedType.Bool)]
 		internal static extern bool CommitTransaction(IntPtr hTransaction);
 
-		[DllImport("Kernel32.dll", CharSet = CharSet.Auto, ExactSpelling = false,
-			SetLastError = true)]
+#if KeePassUWP
+        [DllImport("Kernel32.dll", CharSet = CharSet.Unicode, ExactSpelling = false,
+#else
+        [DllImport("Kernel32.dll", CharSet = CharSet.Auto, ExactSpelling = false,
+#endif
+            SetLastError = true)]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		internal static extern bool MoveFileTransacted(string lpExistingFileName,
 			string lpNewFileName, IntPtr lpProgressRoutine, IntPtr lpData,
 			UInt32 dwFlags, IntPtr hTransaction);
 
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !KeePassUWP)
 		[DllImport("ShlWApi.dll", CharSet = CharSet.Auto)]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		internal static extern bool PathRelativePathTo([Out] StringBuilder pszPath,
@@ -201,24 +213,24 @@ namespace KeePassLib.Native
 		}
 #endif
 
-		internal static bool SupportsStrCmpNaturally
+        internal static bool SupportsStrCmpNaturally
 		{
 			get
 			{
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !KeePassUWP)
 				if(!m_obSupportsLogicalCmp.HasValue)
 					TestNaturalComparisonsSupport();
 
 				return m_obSupportsLogicalCmp.Value;
 #else
-				return false;
+                return false;
 #endif
 			}
 		}
 
 		internal static int StrCmpNaturally(string x, string y)
 		{
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !KeePassUWP)
 			if(!NativeMethods.SupportsStrCmpNaturally)
 			{
 				Debug.Assert(false);
@@ -227,7 +239,7 @@ namespace KeePassLib.Native
 
 			return StrCmpLogicalW(x, y);
 #else
-			Debug.Assert(false);
+            Debug.Assert(false);
 			return string.Compare(x, y, true);
 #endif
 		}
@@ -237,8 +249,11 @@ namespace KeePassLib.Native
 #if KeePassLibSD
 			return Path.GetTempPath();
 #else
-#if KeePassUAP
-			string strRtDir = EnvironmentExt.AppDataLocalFolderPath;
+#if KeePassUWP
+            Windows.Storage.StorageFolder localFolder = Windows.Storage.ApplicationData.Current.LocalFolder;
+            string strRtDir = localFolder.Path;
+#elif KeePassUAP
+            string strRtDir = EnvironmentExt.AppDataLocalFolderPath;
 #else
 			string strRtDir = Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR");
 			if(string.IsNullOrEmpty(strRtDir))
@@ -250,7 +265,7 @@ namespace KeePassLib.Native
 			}
 #endif
 
-			strRtDir = UrlUtil.EnsureTerminatingSeparator(strRtDir, false);
+            strRtDir = UrlUtil.EnsureTerminatingSeparator(strRtDir, false);
 			strRtDir += PwDefs.ShortProductName;
 
 			return strRtDir;

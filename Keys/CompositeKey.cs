@@ -120,8 +120,8 @@ namespace KeePassLib.Keys
 			{
 				if(pKey == null) { Debug.Assert(false); continue; }
 
-#if KeePassUAP
-				if(pKey.GetType() == tUserKeyType)
+#if KeePassUAP || KeePassUWP
+                if (pKey.GetType() == tUserKeyType)
 					return true;
 #else
 				if(tUserKeyType.IsInstanceOfType(pKey))
@@ -147,8 +147,8 @@ namespace KeePassLib.Keys
 			{
 				if(pKey == null) { Debug.Assert(false); continue; }
 
-#if KeePassUAP
-				if(pKey.GetType() == tUserKeyType)
+#if KeePassUAP || KeePassUWP
+                if (pKey.GetType() == tUserKeyType)
 					return pKey;
 #else
 				if(tUserKeyType.IsInstanceOfType(pKey))

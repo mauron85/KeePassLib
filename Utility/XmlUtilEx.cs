@@ -33,12 +33,14 @@ namespace KeePassLib.Utility
 		{
 			XmlDocument d = new XmlDocument();
 
-			// .NET 4.5.2 and newer do not resolve external XML resources
-			// by default; for older .NET versions, we explicitly
-			// prevent resolving
-			d.XmlResolver = null; // Default in old .NET: XmlUrlResolver object
+#if !KeePassUWP
+            // .NET 4.5.2 and newer do not resolve external XML resources
+            // by default; for older .NET versions, we explicitly
+            // prevent resolving
 
-			return d;
+            d.XmlResolver = null; // Default in old .NET: XmlUrlResolver object
+#endif
+            return d;
 		}
 
 		public static XmlReaderSettings CreateXmlReaderSettings()
@@ -50,18 +52,20 @@ namespace KeePassLib.Utility
 			xrs.IgnoreProcessingInstructions = true;
 			xrs.IgnoreWhitespace = true;
 
-#if KeePassUAP
-			xrs.DtdProcessing = DtdProcessing.Prohibit;
+#if KeePassUAP || KeePassUWP
+            xrs.DtdProcessing = DtdProcessing.Prohibit;
 #else
 			// Also see PrepMonoDev.sh script
 			xrs.ProhibitDtd = true; // Obsolete in .NET 4, but still there
 			// xrs.DtdProcessing = DtdProcessing.Prohibit; // .NET 4 only
 #endif
 
-			xrs.ValidationType = ValidationType.None;
+#if !KeePassUWP
+            xrs.ValidationType = ValidationType.None;
 			xrs.XmlResolver = null;
+#endif
 
-			return xrs;
+            return xrs;
 		}
 
 		public static XmlReader CreateXmlReader(Stream s)

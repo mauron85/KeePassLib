@@ -22,7 +22,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 
-#if KeePassUAP
+#if KeePassUAP || KeePassUWP
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Parameters;
@@ -139,7 +139,7 @@ namespace KeePassLib.Cryptography.KeyDerivation
 		internal static bool TransformKeyManaged(byte[] pbNewKey32, byte[] pbKeySeed32,
 			ulong uNumRounds)
 		{
-#if KeePassUAP
+#if KeePassUAP || KeePassUWP
 			KeyParameter kp = new KeyParameter(pbKeySeed32);
 			AesEngine aes = new AesEngine();
 			aes.Init(true, kp);
@@ -212,7 +212,7 @@ namespace KeePassLib.Cryptography.KeyDerivation
 				pbNewKey[i] = (byte)i;
 			}
 
-#if KeePassUAP
+#if KeePassUAP || KeePassUWP
 			KeyParameter kp = new KeyParameter(pbKey);
 			AesEngine aes = new AesEngine();
 			aes.Init(true, kp);
@@ -252,7 +252,7 @@ namespace KeePassLib.Cryptography.KeyDerivation
 			{
 				for(ulong j = 0; j < BenchStep; ++j)
 				{
-#if KeePassUAP
+#if KeePassUAP || KeePassUWP
 					aes.ProcessBlock(pbNewKey, 0, pbNewKey, 0);
 					aes.ProcessBlock(pbNewKey, 16, pbNewKey, 16);
 #else

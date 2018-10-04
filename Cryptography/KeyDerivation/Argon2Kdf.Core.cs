@@ -82,8 +82,12 @@ namespace KeePassLib.Cryptography.KeyDerivation
 			{
 				if(this.Finished != null)
 				{
-					this.Finished.Close();
-					this.Finished = null;
+#if KeePassUWP
+                    this.Finished.Dispose();
+#else
+                    this.Finished.Close();
+#endif
+                    this.Finished = null;
 				}
 				else { Debug.Assert(false); }
 			}
@@ -201,7 +205,7 @@ namespace KeePassLib.Cryptography.KeyDerivation
 			// for(int i = 0; i < (int)NbBlockSizeInQW; ++i)
 			//	vDst[iDstOffset + i] = vSrc[iSrcOffset + i];
 
-#if KeePassUAP
+#if KeePassUAP || KeePassUWP
 			Array.Copy(vSrc, (int)uSrcOffset, vDst, (int)uDstOffset,
 				(int)NbBlockSizeInQW);
 #else
@@ -466,7 +470,7 @@ namespace KeePassLib.Cryptography.KeyDerivation
 						ti.Lane = (ulong)l;
 						ti.Slice = s;
 
-						if(!ThreadPool.QueueUserWorkItem(FillSegmentThr, ti))
+						if(!ThreadUtil.Schedule(FillSegmentThr, ti))
 						{
 							Debug.Assert(false);
 							throw new OutOfMemoryException();

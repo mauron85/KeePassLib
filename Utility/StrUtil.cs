@@ -26,9 +26,14 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 using System.Drawing;
 using System.Security.Cryptography;
+#endif
+
+#if KeePassUWP
+using Windows.UI;
+using KeePassLib.Cryptography.Compat;
 #endif
 
 using KeePassLib.Collections;
@@ -222,7 +227,7 @@ namespace KeePassLib.Utility
 				List<StrEncodingInfo> l = new List<StrEncodingInfo>();
 
 				l.Add(new StrEncodingInfo(StrEncodingType.Default,
-#if KeePassUAP
+#if KeePassUAP || KeePassUWP
 					"Unicode (UTF-8)", StrUtil.Utf8, 1, new byte[] { 0xEF, 0xBB, 0xBF }));
 #else
 #if !KeePassLibSD
@@ -527,12 +532,12 @@ namespace KeePassLib.Utility
 			if(!string.IsNullOrEmpty(excp.StackTrace))
 				strText += excp.StackTrace + MessageService.NewLine;
 #if !KeePassLibSD
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 			if(excp.TargetSite != null)
 				strText += excp.TargetSite.ToString() + MessageService.NewLine;
 #endif
 
-			if(excp.Data != null)
+            if (excp.Data != null)
 			{
 				strText += MessageService.NewLine;
 				foreach(DictionaryEntry de in excp.Data)
@@ -553,12 +558,12 @@ namespace KeePassLib.Utility
 				if(!string.IsNullOrEmpty(excp.InnerException.StackTrace))
 					strText += excp.InnerException.StackTrace + MessageService.NewLine;
 #if !KeePassLibSD
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 				if(excp.InnerException.TargetSite != null)
 					strText += excp.InnerException.TargetSite.ToString();
 #endif
 
-				if(excp.InnerException.Data != null)
+                if (excp.InnerException.Data != null)
 				{
 					strText += MessageService.NewLine;
 					foreach(DictionaryEntry de in excp.InnerException.Data)
@@ -1361,10 +1366,10 @@ namespace KeePassLib.Utility
 				byte[] pbEnc = CryptoUtil.ProtectData(pbPlain, m_pbOptEnt,
 					DataProtectionScope.CurrentUser);
 
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !KeePassUWP)
 				return Convert.ToBase64String(pbEnc, Base64FormattingOptions.None);
 #else
-				return Convert.ToBase64String(pbEnc);
+                return Convert.ToBase64String(pbEnc);
 #endif
 			}
 			catch(Exception) { Debug.Assert(false); }
@@ -1474,10 +1479,10 @@ namespace KeePassLib.Utility
 			Array.Reverse(pb);
 			for(int i = 0; i < pb.Length; ++i) pb[i] = (byte)(pb[i] ^ 0x65);
 
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !KeePassUWP)
 			return Convert.ToBase64String(pb, Base64FormattingOptions.None);
 #else
-			return Convert.ToBase64String(pb);
+            return Convert.ToBase64String(pb);
 #endif
 		}
 
@@ -1634,11 +1639,11 @@ namespace KeePassLib.Utility
 
 			if(strMimeType == null) strMimeType = "application/octet-stream";
 
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !KeePassUWP)
 			return ("data:" + strMimeType + ";base64," + Convert.ToBase64String(
 				pbData, Base64FormattingOptions.None));
 #else
-			return ("data:" + strMimeType + ";base64," + Convert.ToBase64String(
+            return ("data:" + strMimeType + ";base64," + Convert.ToBase64String(
 				pbData));
 #endif
 		}
@@ -1677,8 +1682,12 @@ namespace KeePassLib.Utility
 			}
 
 			pb = ms.ToArray();
-			ms.Close();
-			return pb;
+#if KeePassUWP
+            ms.Dispose();
+#else
+            ms.Close();
+#endif
+            return pb;
 		}
 
 		/// <summary>

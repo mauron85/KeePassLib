@@ -26,7 +26,7 @@ using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 using System.Drawing;
 using System.Windows.Forms;
 #endif
@@ -127,10 +127,15 @@ namespace KeePassLib.Translation
 				}
 			}
 
-			sOut.Close();
-		}
+#if KeePassUWP
+            sOut.Dispose();
+#else
+            sOut.Close();
+#endif
 
-		public static KPTranslation Load(string strFile, IXmlSerializerEx xs)
+        }
+
+        public static KPTranslation Load(string strFile, IXmlSerializerEx xs)
 		{
 			KPTranslation kpTrl = null;
 
@@ -158,8 +163,13 @@ namespace KeePassLib.Translation
 				kpTrl = (xs.Deserialize(gz) as KPTranslation);
 			}
 
-			s.Close();
-			return kpTrl;
+#if KeePassUWP
+            s.Dispose();
+#else
+            s.Close();
+#endif
+
+            return kpTrl;
 		}
 
 		public Dictionary<string, string> SafeGetStringTableDictionary(
@@ -173,7 +183,7 @@ namespace KeePassLib.Translation
 			return new Dictionary<string, string>();
 		}
 
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !KeePassUWP)
 		public void ApplyTo(Form form)
 		{
 			if(form == null) throw new ArgumentNullException("form");
@@ -314,7 +324,7 @@ namespace KeePassLib.Translation
 		}
 #endif
 
-		internal bool IsFor(string strIso6391Code)
+        internal bool IsFor(string strIso6391Code)
 		{
 			if(strIso6391Code == null) { Debug.Assert(false); return false; }
 

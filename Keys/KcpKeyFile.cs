@@ -255,9 +255,13 @@ namespace KeePassLib.Keys
 				}
 			}
 			catch(Exception) { pbKeyData = null; }
-			finally { ms.Close(); }
+#if KeePassUWP
+            finally { ms.Dispose(); }
+#else
+            finally { ms.Close(); }
+#endif
 
-			return pbKeyData;
+            return pbKeyData;
 		}
 
 		private static void CreateXmlKeyFile(string strFile, byte[] pbKeyData)

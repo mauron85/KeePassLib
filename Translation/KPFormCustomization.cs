@@ -23,7 +23,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Xml.Serialization;
 
-#if !KeePassUAP
+#if !KeePassUAP && !KeePassUWP
 using System.Windows.Forms;
 #endif
 
@@ -68,7 +68,7 @@ namespace KeePassLib.Translation
 			}
 		}
 
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !KeePassUWP)
 		private Form m_formEnglish = null;
 		[XmlIgnore]
 		public Form FormEnglish
@@ -104,5 +104,5 @@ namespace KeePassLib.Translation
 			foreach(Control cSub in c.Controls) ApplyToControl(cSub);
 		}
 #endif
-	}
+    }
 }
