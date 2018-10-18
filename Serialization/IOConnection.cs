@@ -35,6 +35,7 @@ using System.Security.Cryptography.X509Certificates;
 #endif
 
 #if KeePassUWP
+using Windows.Storage;
 using KeePassLib.Net.Compat;
 #endif
 
@@ -611,12 +612,17 @@ namespace KeePassLib.Serialization
 
 		private static Stream OpenReadLocal(IOConnectionInfo ioc)
 		{
-			return new FileStream(ioc.Path, FileMode.Open, FileAccess.Read,
+#if KeePassUWP
+            var file = StorageFile.GetFileFromPathAsync(ioc.Path).GetAwaiter().GetResult();
+            return file.OpenAsync(FileAccessMode.Read).GetAwaiter().GetResult().AsStream();
+#else
+            return new FileStream(ioc.Path, FileMode.Open, FileAccess.Read,
 				FileShare.Read);
-		}
+#endif
+        }
 
 #if !KeePassLibSD
-		public static Stream OpenWrite(IOConnectionInfo ioc)
+        public static Stream OpenWrite(IOConnectionInfo ioc)
 		{
 			if(ioc == null) { Debug.Assert(false); return null; }
 
